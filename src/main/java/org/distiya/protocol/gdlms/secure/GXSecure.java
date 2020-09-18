@@ -389,7 +389,7 @@ public final class GXSecure {
                     }
                 }
             }
-            if (securitySuite == SecuritySuite.ECDH_ECDSA_AES_GCM_128_SHA_256) {
+            if (securitySuite == SecuritySuite.ECDH_ECDSA_AES_GCM_128_SHA_256 || securitySuite == SecuritySuite.ECDHE_CDSA_AES_GCM_256_SHA_384) {
                 byte[] tmp = new byte[key.length / 2];
                 System.arraycopy(key, 0, tmp, 0, tmp.length);
                 return tmp;
@@ -744,14 +744,30 @@ public final class GXSecure {
         Security security = Security.forValue(sc & 0x30);
         SecuritySuite ss = SecuritySuite.forValue(sc & 0x3);
         if (ss != SecuritySuite.AES_GCM_128) {
-            byte[] algID = GXCommon.hexToBytes("60857405080300");
+            String alg, algIDString;
+            int keyDataLen;
+            switch (ss) {
+                case ECDH_ECDSA_AES_GCM_128_SHA_256:
+                    alg = "SHA-256";
+                    algIDString = "60857405080300";
+                    keyDataLen = 256;
+                    break;
+                case ECDHE_CDSA_AES_GCM_256_SHA_384:
+                    alg = "SHA-384";
+                    algIDString = "60857405080301";
+                    keyDataLen = 384;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid security suite.");
+            }
+            byte[] algID = GXCommon.hexToBytes(algIDString);
             if (value == 1) {
                 if (p.getSharedSecret() != null) {
-                    GXByteBuffer kdf = new GXByteBuffer(generateKDF("SHA-256",
-                            p.getSharedSecret(), 256, algID, p.getSystemTitle(),
+                    GXByteBuffer kdf = new GXByteBuffer(generateKDF(alg,
+                            p.getSharedSecret(), keyDataLen, algID, p.getSystemTitle(),
                             p.getRecipientSystemTitle(), null, null,
-                            SecuritySuite.ECDH_ECDSA_AES_GCM_128_SHA_256));
-                    p.setBlockCipherKey(kdf.array());
+                            ss));
+                    p.setBlockCipherKey(kdf.subArray(0, kdf.size()));
                 }
             } else if (value == 2) {
                 GXByteBuffer tmp2 = new GXByteBuffer();
@@ -763,11 +779,11 @@ public final class GXSecure {
                 tmp2.setUInt8(0x8);
                 tmp2.setUInt64(transactionId);
                 tmp2.set(p.getRecipientSystemTitle());
-                GXByteBuffer kdf = new GXByteBuffer(
-                        generateKDF("SHA-256", p.getSharedSecret(), 256, algID,
-                                p.getSystemTitle(), tmp2.array(), null, null,
-                                SecuritySuite.ECDH_ECDSA_AES_GCM_128_SHA_256));
-                p.setBlockCipherKey(kdf.subArray(0, 16));
+                GXByteBuffer kdf = new GXByteBuffer(generateKDF(alg,
+                        p.getSharedSecret(), keyDataLen, algID, p.getSystemTitle(),
+                        p.getRecipientSystemTitle(), null, null,
+                        ss));
+                p.setBlockCipherKey(kdf.subArray(0, kdf.size()));
             }
         }
         p.setSecurity(security);
