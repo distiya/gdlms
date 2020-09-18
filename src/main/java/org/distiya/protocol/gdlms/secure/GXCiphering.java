@@ -180,6 +180,13 @@ public class GXCiphering implements GXICipher {
     public final void reset() {
         setSecurity(Security.NONE);
         setInvocationCounter(0);
+        setSecuritySuite(SecuritySuite.AES_GCM_128);
+        setEphemeralKeyPair(null);
+        setSigningKeyPair(null);
+        setDedicatedKey(null);
+        setSharedSecret(null);
+        getPublicKeys().clear();
+        getCertificates().clear();
     }
 
     @Override

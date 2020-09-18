@@ -689,6 +689,7 @@ public class GXDLMSServerBase {
         settings.setConnected(ConnectionState.NONE);
         replyData.clear();
         settings.setAuthentication(Authentication.NONE);
+        settings.setTargetEphemeralKey(null);
         if (settings.getCipher() != null) {
             settings.getCipher().reset();
         }
